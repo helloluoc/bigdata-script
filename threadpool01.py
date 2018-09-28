@@ -1,8 +1,10 @@
 #coding:utf-8
 #!/usr/bin/env python
 
-import Queue, threading, random
+import Queue, threading, random, requests
 
+#from config import *
+from collector import *
 
 class Worker(threading.Thread):
     """
@@ -77,25 +79,43 @@ class WorkerManger(object):
         self.resultqueue.put(result)
 
 
-def hello():
-    print "hello"
-    return random.random()
 
 def send(number):
-    with open("hello.txt", "a") as f:
-        f.write(number + "\n")
+    r = requests.post("http://httpbin.org/get", headers={}, data=number)
+    with open("hello.txt","w+") as f:
+        if number:
+            f.write(number + "\n")
+    print r.status_code
 
+
+todoList = [
+    getCPU,
+    getDisk,
+    getGetmemoryUse,
+    getNetFlowInfo,
+    getPingDelayAndPackageLose,
+    getDbResponse,
+    getQueueQuality,#这里会返回两个0
+    getSrvMaintainace,
+    getFramework,
+    getOnline,
+    getQueue,
+]
 
 if __name__ == '__main__':
-    w = WorkerManger(3)
-    for i in range(5):
-        w.add_job(hello)
+    #预先读取一些信息
+    SERVERNUMBER = "9898"
+    PROJECTID = "9898"#getServreNum("PRODUCTID")
+    httpheader = HTTP_HEADER
+
+    w = WorkerManger(10)
+    for i in range(len(todoList)):
+        w.add_job(todoList[i])
     w.start()
     while True:
         #打算在这里添加发送的函数
         if not w.resultqueue.empty():
-            w.add_job(send, str(w.get_result()))
-            print "1"
+            w.add_job(send, w.get_result())
         else:
             break
 
