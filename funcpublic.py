@@ -162,32 +162,6 @@ def getPingList():
     return pingAbleList
 
 
-
-
-
-
-
-if __name__ == '__main__':
-    getPingList()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 """
 功能：完成字符拼接
 入参：
