@@ -2,15 +2,12 @@
 #!/usr/bin/env python
 
 import Queue, threading, random, requests
+import time
 
 #from config import *
 from collector import *
 
 class Worker(threading.Thread):
-    """
-    定义一个能够处理任务的线程类，属于自定义线程类，自定义线程类就需要定义run()函数
-    """
-
     def __init__(self, workqueue, resultqueue, **kwargs):
         threading.Thread.__init__(self, **kwargs)
         self.workqueue = workqueue  # 存放任务的队列,任务一般都是函数
@@ -28,10 +25,6 @@ class Worker(threading.Thread):
 
 
 class WorkerManger(object):
-    """
-    定义一个线程池的类
-    """
-
     def __init__(self, num=10):  # 默认这个池子里有10个线程
         self.workqueue = Queue.Queue()  # 任务队列，
         self.resultqueue = Queue.Queue()  # 存放任务结果的队列
@@ -39,24 +32,15 @@ class WorkerManger(object):
         self._recruitthreads(num)  # 创建一系列线程的函数
 
     def _recruitthreads(self, num):
-        """
-        创建线程
-        """
         for i in xrange(num):
             worker = Worker(self.workqueue, self.resultqueue)
             self.workers.append(worker)
 
     def start(self):
-        """
-        启动线程池中每个线程
-        """
         for work in self.workers:
             work.start()
 
     def wait_for_complete(self):
-        """
-        等待至任务队列中所有任务完成
-        """
         while len(self.workers):
             worker = self.workers.pop()
             worker.join()
@@ -64,15 +48,9 @@ class WorkerManger(object):
                 self.workers.append(worker)
 
     def add_job(self, callable, *args, **kwargs):
-        """
-        往任务队列中添加任务
-        """
         self.workqueue.put((callable, args, kwargs))
 
     def get_result(self, *args, **kwargs):
-        """
-        获取结果队列
-        """
         return self.resultqueue.get(*args, **kwargs)
 
     def add_result(self, result):
@@ -81,43 +59,54 @@ class WorkerManger(object):
 
 
 def send(number):
-    r = requests.post("http://httpbin.org/get", headers={}, data=number)
-    with open("hello.txt","w+") as f:
-        if number:
-            f.write(number + "\n")
+    for i in number:
+        print i
+        r = requests.post("http://httpbin.org/get", headers={}, data=i)
+        with open("hello.txt","w+") as f:
+            if i:
+                f.write(i + "\n")
     print r.status_code
 
-
+"""
 todoList = [
     getCPU,
-    getDisk,
-    getGetmemoryUse,
-    getNetFlowInfo,
-    getPingDelayAndPackageLose,
-    getDbResponse,
-    getQueueQuality,#这里会返回两个0
-    getSrvMaintainace,
-    getFramework,
-    getOnline,
-    getQueue,
+    #getDisk,
+    #getGetmemoryUse,
+    #getNetOutInfo,
+    #getNetInfo,
+    #getPingPackageLose,
+    #getPingDelay,
+    #getDbResponse,
+    #getQueueQuality,
+    #getSrvMaintainace,
+    #getFramework,
+    #getOnline,
 ]
-
+"""
+todoList = [
+    getDisk,
+    getCPU,
+]
 if __name__ == '__main__':
+
     #预先读取一些信息
     SERVERNUMBER = "9898"
     PROJECTID = "9898"#getServreNum("PRODUCTID")
     httpheader = HTTP_HEADER
 
-    w = WorkerManger(10)
+    w = WorkerManger(3)
     for i in range(len(todoList)):
         w.add_job(todoList[i])
     w.start()
+
     while True:
         #打算在这里添加发送的函数
         if not w.resultqueue.empty():
             w.add_job(send, w.get_result())
         else:
+            print "NOne"
             break
+
 
     w.wait_for_complete()
 
