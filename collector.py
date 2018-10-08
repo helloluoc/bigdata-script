@@ -19,7 +19,7 @@ from funcpublic import *
 """
 def getCPU():
     # 获取采集时间
-    collectorTime = time()
+    collectorTime = collectTime()
     # 采集磁盘使用率事件名称
     METRIC = "cpu.busy"
     senderInfoList = []
@@ -38,6 +38,8 @@ def getCPU():
     resultInfo = str(round(cpu_syl, 2))
     # 拼接发送字符串
     senderInfoList.append(addString(collectorTime, resultInfo, METRIC,qType="total"))
+    sendToLog(collectorTime,senderInfoList)
+    #print senderInfoList
     return senderInfoList
 
 """
@@ -47,7 +49,7 @@ def getCPU():
 """
 def getDisk():
     #获取采集时间
-    collectorTime = time()
+    collectorTime = collectTime()
     #采集磁盘使用率事件名称
     METRIC = "df.bytes.used.percent"
     senderInfoList = []
@@ -60,6 +62,7 @@ def getDisk():
     resultInfo = str(round(psutil.disk_usage('/').used / float(psutil.disk_usage('/').total) * 100,2))
     #拼接发送字符串
     senderInfoList.append(addString(collectorTime, resultInfo, METRIC,qType="total"))
+    sendToLog(collectorTime, senderInfoList)
     return senderInfoList
 
 """
@@ -68,18 +71,17 @@ def getDisk():
 返回：内存使用率
 """
 def getGetmemoryUse():
-    collectorTime = time()
+    collectorTime = collectTime()
     METRIC = "men.menused.percent"
+    senderInfoList = []
 
-    #内存使用率
-    changeToList = list(psutil.virtual_memory())
-    realMemoryUse = changeToList[3] - changeToList[7] - changeToList[-3]
-    realMemoryUsePercent = realMemoryUse * 100 / changeToList[0]
-    resultInfo = str(round(realMemoryUsePercent,2))
+    resultInfo = str(round(psutil.virtual_memory().percent,2))
+    print resultInfo
 
     #拼接发送字符串
-    httpSenderInfo = addString(collectorTime, resultInfo, METRIC,qType="total")
-    return httpSenderInfo
+    senderInfoList.append(addString(collectorTime, resultInfo, METRIC,qType="total"))
+    sendToLog(collectorTime, senderInfoList)
+    return senderInfoList
 
 
 """
@@ -88,7 +90,7 @@ def getGetmemoryUse():
 返回：单个、总体网卡的出栈流量数据
 """
 def getNetOutInfo():
-    collectorTime = time()
+    collectorTime = collectTime()
     METRIC = "net.if.in.bytes"
     senderInfoList = []
 
@@ -106,6 +108,7 @@ def getNetOutInfo():
     resultInfo = str(round(get/1024/1024, 1))
     # 拼接发送字符串
     senderInfoList.append(addString(collectorTime, resultInfo, METRIC,qType="total"))
+    sendToLog(collectorTime, senderInfoList)
     return senderInfoList
 
 
@@ -115,7 +118,7 @@ def getNetOutInfo():
 返回：单个、总体网卡的入栈流量数据
 """
 def getNetInfo():
-    collectorTime = time()
+    collectorTime = collectTime()
     METRIC = "net.if.out.bytes"
     senderInfoList = []
 
@@ -133,6 +136,7 @@ def getNetInfo():
     resultInfo = str(round(sent / 1024 / 1024, 1))
     # 拼接发送字符串
     senderInfoList.append(addString(collectorTime,resultInfo,METRIC,qType="total"))
+    sendToLog(collectorTime, senderInfoList)
     return senderInfoList
 
 
@@ -142,21 +146,24 @@ def getNetInfo():
 返回：ping其他机房的丢包率
 """
 def getPingPackageLose():
-    collectorTime = time()
-    METRIC = "svr.db.answer"
+    collectorTime = collectTime()
+    METRIC = "ping.value.loss"
     target = "lospkg"
-    resultNtype = getNtype()
+    idroom = "iroomid"
+    idmachine = "machineid"
+    resultNtype = str(getNtype())
     #需要ping的IP地址列表
     pingAbleList = getPingList()
-    resultInfoList = []
+    senderInfoList = []
 
     for i in pingAbleList:
-        resultInfo = getPingInfo(i,target)
-        irromid = getId(i,irromid)
-        imachineid = getId(i,imachineid)
-        resultSon = addString(collectorTime, resultInfo, METRIC, iRromId=irromid,iMachineId=imachineid,nType=resultNtype)
-        resultInfoList.append(resultSon)
-    return resultInfoList
+        resultInfo = str(getPingInfo(i, target))
+        irromId = getId(idroom,i)
+        imachineid = getId(idmachine,i)
+        resultSon = addString(collectorTime, resultInfo, METRIC, iRromId=irromId,iMachineId=imachineid,nType=resultNtype)
+        senderInfoList.append(resultSon)
+    sendToLog(collectorTime, senderInfoList)
+    return senderInfoList
 
 
 """
@@ -165,21 +172,24 @@ def getPingPackageLose():
 返回：ping其他机房的延迟
 """
 def getPingDelay():
-    collectorTime = time()
-    METRIC = "svr.db.answer"
+    collectorTime = collectTime()
+    METRIC = "ping.value"
     target = "timeout"
-    resultNtype = getNtype()
+    idroom = "iroomid"
+    idmachine = "machineid"
+    resultNtype = str(getNtype())
     #需要ping的IP地址列表
     pingAbleList = getPingList()
-    resultInfoList = []
+    senderInfoList = []
 
     for i in pingAbleList:
-        resultInfo = getPingInfo(i,target)
-        irromid = getId(i,irromid)
-        imachineid = getId(i,imachineid)
+        resultInfo = str(getPingInfo(i,target))
+        irromid = getId(idroom,i)
+        imachineid = getId(idmachine,i)
         resultSon = addString(collectorTime, resultInfo, METRIC, iRromId=irromid,iMachineId=imachineid,nType=resultNtype)
-        resultInfoList.append(resultSon)
-    return resultInfoList
+        senderInfoList.append(resultSon)
+    sendToLog(collectorTime, senderInfoList)
+    return senderInfoList
 
 
 """
@@ -188,8 +198,9 @@ def getPingDelay():
 返回：超时返回1，非超时返回0
 """
 def getDbResponse():
-    collectorTime = time()
+    collectorTime = collectTime()
     METRIC = "svr.db.answer"
+    senderInfoList = []
 
     result = subprocess.call("ps aux|grep -v 'grep'|grep 'mysql'|grep '\-\-socket=/var/run/mysqld/mysqld.sock'|wc -l", shell=True)
     if result == 1:
@@ -197,8 +208,9 @@ def getDbResponse():
     else:
         resultInfo = str(1)
     # 拼接发送字符串
-    httpSenderInfo = addString(collectorTime, resultInfo, METRIC)
-    return httpSenderInfo
+    senderInfoList.append(addString(collectorTime, resultInfo, METRIC))
+    sendToLog(collectorTime, senderInfoList)
+    return senderInfoList
 
 
 """
@@ -207,9 +219,10 @@ def getDbResponse():
 返回：http、wnt的通道故障率
 """
 def getQueueQuality():
-    collectorTime = time()
+    collectorTime = collectTime()
     METRIC = "svr.fault"
-    resultInfoList = []
+    senderInfoList = []
+    i = 2
 
     httpRequestList = []
     httpErrorList = []
@@ -219,15 +232,17 @@ def getQueueQuality():
     wntErrorPercent = 0
     SERVERNUM = SERVERNUMBER
     # 文件存在且是一个普通文件
-    if os.path.exists(OLD_SHELLTYPE_FLAG) and os.path.isfile(OLD_SHELLTYPE_FLAG):
-        sQualityLog = "/home/dy1/gs" + SERVERNUM + "/log/pubpathpublic.txt"
+    if OLD_SHELLTYPE_FLAG:
+        sQualityLog = "/myshell/pubpathquality.txt"
+        #sQualityLog = "/home/dy1/gs" + SERVERNUM + "/log/pubpathquality.txt"
     else:
-        sQualityLog = "/home/dy1/gs" + SERVERNUM + "/log/oslog/pubpathpublic.txt"
-    if os.path.exists(sQualityLog) and os.path.isfile(sQualityLog):
+        sQualityLog = "/home/dy1/gs" + SERVERNUM + "/log/oslog/pubpathquality.txt"
+    if os.path.isfile(sQualityLog):
     # 获取最近一次记录的通道信息
-        lastLogTime = tailer.tail(open(sQualityLog), 1)[0].split(']')[0].split("[")[1]
+        info = tailer.tail(open(sQualityLog), 1)
+        print info
+        lastLogTime = info[0].split(']')[0].split("[")[1]
         while True:
-            i = 2
             findLogTime = tailer.tail(open(sQualityLog),i)[0].split(']')[0].split("[")[1]
             if findLogTime == lastLogTime:
                 i = i + 1
@@ -241,21 +256,17 @@ def getQueueQuality():
             #将http和wnt通道故障率分别统计
             type = i.split("]")[1].split(" ")[0]
             if type == "http":
-                httpRequestList.append(i.split("]")[1].split(" ")[2])
-                httpErrorList.append(i.split("]")[1].split(" ")[3])
-                httpErrorPercent = round(sum(httpErrorList) / sum(httpRequestList), 2)
+                httpRequestList.append(float(i.split("]")[1].split(" ")[2]))
+                httpErrorList.append(float(i.split("]")[1].split(" ")[3]))
+                resultInfo1 = str(round(sum(httpErrorList) / sum(httpRequestList), 2))
+                senderInfoList.append(addString(collectorTime, resultInfo1, METRIC, qType="http"))
             else:
-                wntRequestList.append(i.split("]")[1].split(" ")[2])
-                wntErrorList.append(i.split("]")[1].split(" ")[3])
-                wntErrorPercent = round(sum(wntErrorList) / sum(wntRequestList), 2)
-
-    #需求文档未标明两种通道是否分开发送
-    resultInfo1 = str(httpErrorPercent)
-    resultInfo2 = str(wntErrorPercent)
-
-    resultInfoList.append(addString(collectorTime,resultInfo1,METRIC))
-    resultInfoList.append(addString(collectorTime,resultInfo2,METRIC))
-    return resultInfoList
+                wntRequestList.append(float(i.split("]")[1].split(" ")[2]))
+                wntErrorList.append(float(i.split("]")[1].split(" ")[3]))
+                resultInfo2 = str(round(sum(wntErrorList) / sum(wntRequestList), 2))
+                senderInfoList.append(addString(collectorTime, resultInfo2, METRIC, qType="wnt"))
+    sendToLog(collectorTime, senderInfoList)
+    return senderInfoList
 
 
 """
@@ -264,17 +275,18 @@ def getQueueQuality():
 返回：维护返回1，非维护返回0
 """
 def getSrvMaintainace():
-    collectorTime = time()
+    collectorTime = collectTime()
     METRIC = "svr.maintainace"
-    resultInfoList = []
+    senderInfoList = []
 
     result = os.path.exists("/home/dy1/maintain.run")
     if result:
         resultInfo = str(1)
     else:
         resultInfo = str(0)
-    resultInfoList.append(addString(collectorTime,resultInfo,METRIC))
-    return resultInfoList
+    senderInfoList.append(addString(collectorTime,resultInfo,METRIC))
+    sendToLog(collectorTime, senderInfoList)
+    return senderInfoList
 
 
 """
@@ -283,27 +295,24 @@ def getSrvMaintainace():
 返回：服务器帧数
 """
 def getFramework():
-    collectorTime = time()
+    collectorTime = collectTime()
     METRIC = "svr.framecnt"
-    SERVERNUM = SERVERNUMBER
     frameNumber = ""
-    resultInfoList = []
+    senderInfoList = []
 
     #根据标志位设置文件路径
-    if os.path.exists(OLD_SHELLTYPE_FLAG) and os.path.isfile(OLD_SHELLTYPE_FLAG):
-        sFrameLog = "/home/dy1/gs" + SERVERNUM + "/log/frameratio.txt"
-    else:
-        sFrameLog = "/home/dy1/gs" + SERVERNUM + "/log/oslog/frameratio.txt"
+    sFrameLog = "/myshell/frameratio.txt"
     #文件存在且是一个普通文件
-    if os.path.exists(sFrameLog) and os.path.isfile(sFrameLog):
+    if os.path.isfile(sFrameLog):
         frameList = tailer.tail(open(sFrameLog), 1)
         #类似   [2018-09-25 15:01:45]5656 124 569
         frameNumber = frameList[0].split("]")[1].split(" ")[0]
     resultInfo = str(frameNumber)
 
     # 拼接发送字符串
-    resultInfoList.append(addString(collectorTime, resultInfo, METRIC))
-    return resultInfoList
+    senderInfoList.append(addString(collectorTime, resultInfo, METRIC))
+    sendToLog(collectorTime, senderInfoList)
+    return senderInfoList
 
 
 """
@@ -312,24 +321,25 @@ def getFramework():
 返回：服务器在线人数
 """
 def getOnline():
-    collectorTime = time()
+    collectorTime = collectTime()
     METRIC = "svr.online"
     resultInfo = ""
-    resultInfoList = []
+    senderInfoList = []
 
     SERVERNUM = SERVERNUMBER
-    sOnlineLog = "/home/dy1/gs" + SERVERNUM + "/log/frameratio.txt"
+    #sOnlineLog = "/home/dy1/gs" + SERVERNUM + "/log/frameratio.txt"
     # 根据标志位设置文件路径
-    if os.path.exists(OLD_SHELLTYPE_FLAG) and os.path.isfile(OLD_SHELLTYPE_FLAG):
-        sOnlineLog = "/home/dy1/gs" + SERVERNUM + "/log/online.txt"
+    if OLD_SHELLTYPE_FLAG:
+        sOnlineLog = "/myshell/online.txt"
+        #sOnlineLog = "/home/dy1/gs" + SERVERNUM + "/log/online.txt"
     #文件存在且是一个普通文件
-    if os.path.exists(sOnlineLog) and os.path.isfile(sOnlineLog):
+    if os.path.isfile(sOnlineLog):
         onlineList = tailer.tail(open(sOnlineLog), 1)
         #类似  [2018-09-25 15:01:45]5656 124 569 2 6 5
         resultInfo = str(onlineList[0].split("]")[1].split(" ")[0])
     # 拼接发送字符串
-    resultInfoList.append(addString(collectorTime, resultInfo, METRIC))
-    return resultInfoList
+    senderInfoList.append(addString(collectorTime, resultInfo, METRIC))
+    return senderInfoList
 
 
 """
@@ -338,7 +348,7 @@ def getOnline():
 返回：服务器排队人数（日志文件不统一，暂不实现）
 """
 def getQueue():
-    collectorTime = time()
+    collectorTime = collectTime()
     METRIC = "svr.queue"
     SERVERNUM = SERVERNUMBER
 
@@ -387,7 +397,11 @@ if __name__ == '__main__':
         elif number == "22":
             shit = getPingPackageLose()
             print shit
+        elif number == "33":
+            shit = getPingDelay()
+            print shit
         else:
             break
 
+    print tailer.tail(open("/myshell/pubpathquality.txt"), 1)
 
