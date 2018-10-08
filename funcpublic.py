@@ -11,23 +11,23 @@ from config import *
 '''
 公共函数
 '''
-#从gs.conf中获得相关信息，默认为SERVERNUM
-#服务器所属项目编号PRODUCTID
-#
-def getServreNum(name="SERVERNUM"):
+"""
+功能:从gs.conf中获取行关信息，默认获取servernumber
+入参：需要从gs.conf中获取的信息
+返回：返回所需信息
+"""
+def getGsConfInfo(name="servernumber"):
     with open("/myshell/gs.conf") as f:
-        gsConfInfo = f.readline().strip('\n')
-        while True:
-            splistList = gsConfInfo.split("=", 1)
+        gsConfInfo = f.readlines()
+        for i in gsConfInfo:
+            i.strip('\n')
+            splistList = i.split("=", 1)
             if splistList[0] == name:
-                return (splistList[1])
-                break
-            else:
-                continue
-            gsConfInfo = f.readline().strip('\n')
+                return (str(splistList[1].split('\n')[0]))
+
 
 #获取采集数据时间
-def time():
+def collectTime():
     dt = datetime.now()
     collectoTime = dt.strftime('%Y-%m-%d %H:%M:%S')
     return collectoTime
@@ -43,31 +43,17 @@ def get_host_ip():
         s.close()
     return ip
 
-'''
+
 #判断日志文件是否存在，不存在则创建
 def makeLog():
     if os.path.isfile("/myshell/sendlog.txt"):
-        print "文件已存在"
         pass
     else:
         try:
-            f = open("/myshell/sendlog.txt", "w")
-            f.close()
-            print "文件已创建"
+            with open("hello.txt","w+") as f:
+                f.write("--------开始记录--------")
         except:
             return "创建文件权限不足"
-    if os.path.isfile("/myshell/errorlog.txt"):
-        print "文件已存在"
-        pass
-    else:
-        try:
-            f = open("/myshell/errorlog.txt", "w")
-            f.close()
-            print "文件已创建"
-        except:
-            print "dfd"
-            return "创建文件权限不足"
-'''
 
 """
 功能：区分内网还是公网
@@ -100,11 +86,13 @@ def getId(idclass,ipAddress=None):
     if ipAddress == None:
         ipAddress = str(get_host_ip())
     info = pinglist.get(ipAddress)
+
     if idclass == "roomid":
         roomid = info.get("roomid")
         return roomid
     else:
         machineid = info.get("machineid")
+
         return machineid
 
 
@@ -130,7 +118,7 @@ def getPingInfo(ip,target):
         timelost = re.search(avgtime, pinginfo)
         timelost = str(timelost.group())
         timelost = round(float(timelost.split("/", 3)[1]), 2)
-        return avgtime
+        return timelost
 
 """
 功能：获取可ping的IP地址列表（内外网间不ping，广州成都内网不ping）
@@ -163,43 +151,12 @@ def getPingList():
 
 
 """
-功能：完成字符拼接
-入参：
-返回：拼接好的字符串
-"""
-def splicStr(collectorTime,resultInfo,METRIC,iRromId=None,iMachineId=None,line=None,qType=None):
-    expandFile = ""
-    expandFile1 = ""
-    if METRIC in METRIC_LIST1:
-        resultGtype = getGtype()
-        expandFile1 = ",gtype:" + str(resultGtype) + ",qtype:total"
-        expandFile = "mroom:" + MACHINEID + expandFile1
-    elif METRIC in METRIC_LIST2:
-        resultGtype = getGtype()
-        expandFile1 = ",gtype:" + str(resultGtype)
-        expandFile = "mroom:" + MACHINEID + expandFile1
-    elif METRIC in METRIC_LIST3:
-        resultGtype = getGtype()
-        resultNtype = getNtype()
-        expandFile1 = ",gtype:" + str(resultGtype) + ",ntype:" + resultNtype
-        expandFile = "mroom:" + MACHINEID + ",rroom:" + iRromId + ",reserver:" + iMachineId + ",line:" + expandFile1
-
-
-    expandList = [collectorTime, SERVERNUMBER, LOG_NAME, PROJECTID, METRIC, resultInfo, expandFile]
-    addSeq = SEP.join(expandList)
-    httpString = OrderedDict()
-    httpString["headers"] = {}
-    httpString["body"] = addSeq
-    httpSenderInfo = json.dumps(httpString)
-    return httpSenderInfo
-
-
-"""
 功能：完成字符拼接（完整版）
 入参：
 返回：拼接好的字符串
 """
 def addString(collectorTime,resultInfo,METRIC,iRromId=None,iMachineId=None,line=None,nType=None,qType=None):
+    #MACHINEID = getId("machineid")
     expandFile = "mroom:" + MACHINEID
     resultGtype = getGtype()
 
@@ -209,9 +166,12 @@ def addString(collectorTime,resultInfo,METRIC,iRromId=None,iMachineId=None,line=
         expandFile = expandFile + ",reserver:" + iMachineId + ",line:"
     expandFile = expandFile + ",gtype:" + str(resultGtype)
     if nType:
-        expandFile = expandFile + "," + nType
+        expandFile = expandFile + ",ntype:" + nType
     if qType:
         expandFile = expandFile + ",qtype:" + qType
+
+    #SERVERNUMBER = getGsConfInfo()
+    #PROJECTID = getGsConfInfo("projectid")
 
     expandList = [collectorTime, SERVERNUMBER, LOG_NAME, PROJECTID, METRIC, resultInfo, expandFile]
     addSeq = SEP.join(expandList)
@@ -222,7 +182,23 @@ def addString(collectorTime,resultInfo,METRIC,iRromId=None,iMachineId=None,line=
     return httpSenderInfo
 
 
+"""
+功能：将发送内容保存到日志中
+入参：发送时间、发送内容
+返回：None
+"""
+def sendToLog(sendtime,message):
+    for i in message:
+        with open("hello.txt","a") as f:
+            f.write("------------" + "\n")
+            f.write(i + "\n")
+    f.close()
 
+if __name__ == '__main__':
+    shit = getGsConfInfo("mname")
+    print str(shit)
+    shit = getGsConfInfo("projectid")
+    print shit
 
 
 
