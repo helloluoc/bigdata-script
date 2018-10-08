@@ -1,8 +1,9 @@
 #coding:utf-8
 #!/usr/bin/env python
 
-import Queue, threading, random, requests
+import Queue, threading, requests
 import time
+
 
 #from config import *
 from collector import *
@@ -26,7 +27,7 @@ class Worker(threading.Thread):
 
 class WorkerManger(object):
     def __init__(self, num=10):  # 默认这个池子里有10个线程
-        self.workqueue = Queue.Queue()  # 任务队列，
+        self.workqueue = Queue.Queue()  # 任务队列
         self.resultqueue = Queue.Queue()  # 存放任务结果的队列
         self.workers = []  # 所有的线程都存放在这个列表中
         self._recruitthreads(num)  # 创建一系列线程的函数
@@ -59,54 +60,59 @@ class WorkerManger(object):
 
 
 def send(number):
+    print "shit"
     for i in number:
-        print i
+        print "dkdf"
         r = requests.post("http://httpbin.org/get", headers={}, data=i)
         with open("hello.txt","w+") as f:
             if i:
                 f.write(i + "\n")
     print r.status_code
 
-"""
+
+
+
 todoList = [
     getCPU,
-    #getDisk,
-    #getGetmemoryUse,
-    #getNetOutInfo,
-    #getNetInfo,
-    #getPingPackageLose,
-    #getPingDelay,
-    #getDbResponse,
-    #getQueueQuality,
-    #getSrvMaintainace,
-    #getFramework,
-    #getOnline,
-]
-"""
-todoList = [
     getDisk,
-    getCPU,
+    getGetmemoryUse,
+    getNetOutInfo,
+    getNetInfo,
+    getPingPackageLose,
+    getPingDelay,
+    getDbResponse,
+    getQueueQuality,
+    getSrvMaintainace,
+    getFramework,
+    getOnline,
 ]
+
 if __name__ == '__main__':
 
-    #预先读取一些信息
-    SERVERNUMBER = "9898"
-    PROJECTID = "9898"#getServreNum("PRODUCTID")
+    num = 0
+    #global SERVERNUMBER
+    SERVERNUMBER = getGsConfInfo()
+    PROJECTID = getGsConfInfo("projectid")
+    #print SERVERNUMBER
+    #print PROJECTID
+
     httpheader = HTTP_HEADER
-
-    w = WorkerManger(3)
-    for i in range(len(todoList)):
-        w.add_job(todoList[i])
-    w.start()
-
+    w = WorkerManger(10)
     while True:
-        #打算在这里添加发送的函数
-        if not w.resultqueue.empty():
-            w.add_job(send, w.get_result())
-        else:
-            print "NOne"
-            break
+        num += 1
+        httpheader = HTTP_HEADER
 
-
-    w.wait_for_complete()
+        #w = WorkerManger(10)
+        for i in range(len(todoList)):
+            w.add_job(todoList[i])
+        w.start()
+        w.wait_for_complete()
+        while not w.resultqueue.empty():
+            h = w.resultqueue.get()
+            for i in h:
+                print i
+                requests.post("http://h", headers={}, data=i)
+        time.sleep(1)
+        print "--"
+        print num
 
