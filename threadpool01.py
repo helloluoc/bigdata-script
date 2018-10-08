@@ -111,7 +111,7 @@ if __name__ == '__main__':
             h = w.resultqueue.get()
             for i in h:
                 print i
-                requests.post("http://h", headers={}, data=i)
+                requests.post("http://httpbin.org/get", headers={}, data=i)
         time.sleep(1)
         print "--"
         print num
